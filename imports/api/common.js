@@ -14,4 +14,17 @@ export const SESSION_KEYS = {
 
 export const ACTIVITIES = {
     GET_ACTIVITIES: 'get.activity.list',
+    GET_ALL: 'get.all.activities',
 }
+
+
+export const PAYROLL = {
+    GET_PAYROLL: 'get.payroll.list',
+    UPDATE_SALARY: 'update.salary',
+}
+
+export const FEEDBACK = {
+    SUBMIT_FEEDBACK: 'submit.feedback',
+    RETRIEVE_FEEDBACK: 'retrieve.feedbacks',
+}
+

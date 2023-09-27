@@ -21,7 +21,7 @@ class AuthorizationWatcher extends Watcher {
     register(email, password, fullname) {
         console.log(email, fullname, password);
         return new Promise((resolve, reject) => {
-            Accounts.createUser({ email: email, password: password, profile: { fullname: fullname } }, (err) => {
+            Accounts.createUser({ email: email, password: password, profile: { fullname: fullname, salary: 25000 } }, (err) => {
                 if (err) reject(err.reason);
                 else resolve(true);
             })

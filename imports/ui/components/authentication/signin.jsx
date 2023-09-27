@@ -25,7 +25,7 @@ class SignInComponent extends Component {
 
     async handleSubmit(event) {
         event.preventDefault();
-        localStorage.removeItem(SESSION_KEYS.access_token);
+        //localStorage.removeItem(SESSION_KEYS.access_token);
         try {
             let result = await AuthenticationWatcher.login(this.state.email, this.state.password);
             if (result === true) {

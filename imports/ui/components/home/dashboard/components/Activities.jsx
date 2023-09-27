@@ -2,8 +2,18 @@ import React, { Component } from "react";
 import { SESSION_KEYS } from "../../../../../api/common";
 import HubstaffWatcher from "../../../../../api/classes/client/hubstaff/HubstaffWatcher";
 import ActivityRowSkeleton from "./ActivityRowSkeleton";
+import { setTotalHour, setSalary, setActivities } from "../../../../redux/activitiesAction";
+import { useDispatch, useSelector } from "react-redux";
 
-class Activities extends Component {
+
+function Activities() {
+    const dispatch = useDispatch();
+    const activity = useSelector((state) => state.activity);
+    return (
+        <ActivitiesComponent dispatch={dispatch} activity={activity} />
+    )
+}
+class ActivitiesComponent extends Component {
     constructor(props) {
         super(props);
         this.props = props;
@@ -12,42 +22,61 @@ class Activities extends Component {
             isRetrieving: false,
         }
     }
-    getPreviousMonday(currentDate) {
-        const dayOfWeek = currentDate.getDay();
-        const daysUntilMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-        const previousMonday = new Date(currentDate);
-        previousMonday.setDate(currentDate.getDate() - daysUntilMonday);
-        return previousMonday;
-    }
+
     getPreviousSunday(currentDate) {
         const dayOfWeek = currentDate.getDay();
-        const daysUntilSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+        const daysUntilSunday = (dayOfWeek + 7 - 1) % 7;
         const previousSunday = new Date(currentDate);
         previousSunday.setDate(currentDate.getDate() - daysUntilSunday);
+
         return previousSunday;
     }
+
     async getActivities(access_token) {
         let date_end = new Date();
         let date_start = this.getPreviousSunday(date_end);
         const activities = await HubstaffWatcher.retrieveActivities(date_start, date_end);
-        console.log(activities);
+        let total_hours = this.totalRenderedHours(activities);
+        this.props.dispatch(setTotalHour(total_hours));
+        let sortedActivities = this.sortByDateOldestFirst(activities);
+        this.props.dispatch(setActivities(sortedActivities));
         this.setState({
-            activities: activities,
+            activities: sortedActivities,
         })
         this.setState({
             isRetrieving: false,
         })
         await this.requestToApi(access_token);
     }
+
+    sortByDateOldestFirst(arr) {
+        function compareDates(a, b) {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (dateA < dateB) return -1;
+            if (dateA > dateB) return 1;
+            return 0;
+        }
+        const sortedArray = [...arr];
+        sortedArray.sort(compareDates);
+
+        return sortedArray;
+    }
+
+
     async requestToApi(access_token) {
         let date_end = new Date();
         let date_start = this.getPreviousSunday(date_end);
         const activities = await HubstaffWatcher.requestActivityToApi(access_token, date_start, date_end);
-        console.log(activities);
+        let sortedActivities = this.sortByDateOldestFirst(activities)
+        this.props.dispatch(setActivities(sortedActivities));
         this.setState({
-            activities: activities,
+            activities: sortedActivities,
         })
+        let total_hours = this.totalRenderedHours(activities);
+        this.props.dispatch(setTotalHour(total_hours))
     }
+
     secondsToHourMinute(seconds) {
         const hours = Math.floor(seconds / 3600);
         const minutes = Math.floor((seconds % 3600) / 60);
@@ -55,9 +84,9 @@ class Activities extends Component {
         return `${hours}:${paddedMinutes}`;
     }
 
-    totalRenderedHours() {
+    totalRenderedHours(activities) {
         let totalSeconds = 0;
-        this.state.activities.forEach(item => {
+        activities.forEach(item => {
             totalSeconds = totalSeconds + item.billable;
         })
         let totalHour = this.secondsToHourMinute(totalSeconds);
@@ -80,16 +109,17 @@ class Activities extends Component {
 
     async componentDidMount() {
         let token = JSON.parse(localStorage.getItem(SESSION_KEYS.access_token));
+        this.setState({
+            isRetrieving: true,
+        })
+        await this.getActivities(token.access_token);
+        let user = HubstaffWatcher.Parent.user();
+        this.props.dispatch(setSalary(user.profile.salary));
 
-        if (token) {
-            this.setState({
-                isRetrieving: true,
-            })
-            await this.getActivities(token.access_token);
-        }
     }
+
     render() {
-        console.log(this.state.activities);
+
         return (
             <div className="card_row_container">
                 <div className="card_dashboard">
@@ -228,7 +258,7 @@ class Activities extends Component {
                                             <div className="rb-table-col _20">
                                                 <div className="rb-table-cell">
                                                     <div className="table-text">
-                                                        <div>{this.totalRenderedHours()}</div>
+                                                        <div>{this.totalRenderedHours(this.state.activities)}</div>
                                                     </div>
                                                 </div>
                                             </div>

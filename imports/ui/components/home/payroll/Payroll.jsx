@@ -1,162 +1,197 @@
 import React, { Component } from "react";
+import TopNavigation from "../../common/TopNavigation";
+import TopCard from "./components/TopCards";
+import { useSelector, useDispatch } from "react-redux";
+import HubstaffWatcher from "../../../../api/classes/client/hubstaff/HubstaffWatcher";
+import PayrollRows from "./components/PayrollRows";
+import Explanation from "./components/Explantion";
+import { setSalary, showExplanation } from "../../../redux/activitiesAction";
 
-class Payroll extends Component {
+function Payroll() {
+    const activity = useSelector((state) => state.activity);
+    const dispatch = useDispatch();
+    return (
+        <PayrollComponent activity={activity} dispatch={dispatch} />
+    )
+}
+class PayrollComponent extends Component {
     constructor(props) {
         super(props);
         this.props = props;
+        this.state = {
+            salary: 0,
+            salary_per_hour: 0,
+            payrollList: [],
+        }
+    }
+    calculateSalaryPerHour(salary, rate) {
+        let salary_per_hour = salary / 2 / 11 / 9 / rate;
+        this.setState({
+            salary_per_hour: parseFloat(salary_per_hour).toFixed(2),
+        })
+    }
+    findNewestAndOldestDates(data) {
+        if (!Array.isArray(data) || data.length === 0) {
+            return { newest: null, oldest: null };
+        }
+
+        let newestDate = data[0].created_at;
+        let oldestDate = data[0].created_at;
+
+        for (const item of data) {
+            if (item.created_at > newestDate) {
+                newestDate = item.created_at;
+            }
+            if (item.created_at < oldestDate) {
+                oldestDate = item.created_at;
+            }
+        }
+
+        return { newest: newestDate, oldest: oldestDate };
     }
 
+    secondsToHourMinute(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const paddedMinutes = String(minutes).padStart(2, '0');
+        return `${hours}:${paddedMinutes}`;
+    }
 
+    calculateTotalHours(activities, startDate, endDate) {
+        let ranges = [];
+        let end = new Date(endDate);
+        let first = true;
+
+        let endBase = end.getDate();
+        if (endBase > 15) {
+            end.setMonth(end.getMonth() + 1, 1);
+            end.setDate(end.getDate() - 1)
+        } else {
+            end.setDate(15);
+        }
+        const setStart = (started) => {
+            let start = new Date(started);
+            let next = new Date(started);
+            console.log("----------------------", start);
+            let temp = null;
+            let base = start.getDate();
+            if (first) {
+                if (base >= 15) {
+                    start.setDate(15);
+                } else {
+                    start.setDate(1);
+                }
+            }
+            if (start.getDate() === 1) {
+                next.setDate(15)
+                temp = new Date(next.setDate(15))
+            } else {
+                temp = new Date(next.setMonth(next.getMonth() + 1, 1));
+                temp.setDate(temp.getDate() - 1);
+                //next.setDate(next.getDate() - 1);
+            }
+            console.log("--Next", next);
+            ranges.push({ start: start, next: temp });
+            console.log(next, end);
+            if (next < end) {
+                setStart(next);
+            }
+        }
+
+        setStart(startDate);
+        let totalHour = 0;
+        let hoursList = [];
+        console.log(ranges);
+        ranges = ranges.reverse();
+        ranges.forEach(item => {
+            let projectName = "";
+            activities.forEach(element => {
+                let activitydate = new Date(element.date);
+
+                if (activitydate >= item.start && activitydate <= item.next) {
+                    totalHour = totalHour + element.billable;
+                }
+                projectName = element.projectName
+            });
+            hoursList.push({ range: item, projectName: projectName, totalHour: this.secondsToHourMinute(totalHour) });
+            totalHour = 0;
+        });
+        return hoursList;
+    }
+
+    sortByDateOldestFirst(arr) {
+        function compareDates(a, b) {
+            const dateA = new Date(a.date);
+            const dateB = new Date(b.date);
+            if (dateA < dateB) return -1;
+            if (dateA > dateB) return 1;
+            return 0;
+        }
+        const sortedArray = [...arr];
+        sortedArray.sort(compareDates);
+
+        return sortedArray;
+    }
+    componentDidUpdate(prevProps) {
+        if (prevProps.activity !== this.props.activity) {
+            this.setState({
+                salary: this.props.activity.salary
+            });
+            this.calculateSalaryPerHour(this.props.activity.salary, this.props.activity.usdRate);
+        }
+    }
+    async componentDidMount() {
+        this.setState({
+            salary: this.props.activity.salary
+        })
+        this.calculateSalaryPerHour(this.props.activity.salary, this.props.activity.usdRate);
+        let activities = await HubstaffWatcher.retrieveAllActivities();
+        console.log("Activities", activities);
+        let sortedActivity = this.sortByDateOldestFirst(activities);
+        let { newest, oldest } = this.findNewestAndOldestDates(activities);
+        let totalHour = this.calculateTotalHours(sortedActivity, oldest, newest);
+        console.log("____total hour_____", totalHour);
+        this.setState({
+            payrollList: totalHour,
+        })
+
+
+    }
+    showExplanation() {
+        console.log("Show Explanation");
+        this.props.dispatch(showExplanation(true));
+    }
+    onSalaryChange(event) {
+        console.log("changing value")
+        this.props.dispatch(setSalary(event.target.value));
+        HubstaffWatcher.updateSalary(event.target.value);
+    }
     render() {
         return (
             <div className="ry_main-style1">
-                <div className="ry_main-style1_top-nav">
-                    <div className="ry_main-style1_top-nav_left">
-                        <h1 className="ry_h1-display2">Payroll</h1>
-                    </div>
-                    <div className="ry_main-style1_top-nav_right">
-                        <div className="rb-sidebar-avatar"><img
-                            src="https://assets.website-files.com/645264fdc383c729c0e89204/64526af54b087779dbe4f322_side_01.svg"
-                            loading="lazy" alt="" /></div>
-                    </div>
-                </div>
+                <TopNavigation tittle={"Payroll"} />
                 <div className="ry_main-style1_container">
                     <div className="section-style1 mt-0">
                         <div className="activity_top_container align-end">
-                            <div className="date-range_container">
-                                <div className="arrow_date-range"><img
-                                    src="https://assets.website-files.com/645264fdc383c729c0e89204/645276cc1b872033218e9c8f_act_01.svg"
-                                    loading="lazy" alt="" /></div>
-                                <div data-w-id="5e71ff31-cb94-02af-b2c9-0fda3ff1d518" className="date-range-text_container">
-                                    <div className="date-range_text">May 1-15,2023</div>
-                                </div>
-                                <div className="arrow_date-range"><img
-                                    src="https://assets.website-files.com/645264fdc383c729c0e89204/645276ccf5d46b22591aff59_act_02.svg"
-                                    loading="lazy" alt="" /></div>
-                                <div className="popup_date-range">
-                                    <div className="add-deadline_top">
-                                        <div className="div-block-340"><a href="#" className="ry_btn-deadline w-button">Today</a></div>
-                                        <div className="div-block-340"><a href="#" className="ry_btn-deadline tomorrow w-button">Yesterday</a></div>
-                                        <div className="div-block-340"><a href="#" className="ry_btn-deadline this-weekend w-button">Last Week</a></div>
-                                        <div className="div-block-340"><a href="#" className="ry_btn-deadline next-week w-button">This Month</a></div>
-                                        <div className="div-block-340 _w-100"><a href="#" className="ry_btn-deadline no-date w-button">Last 2 Weeks</a>
-                                        </div>
-                                    </div>
-                                    <div className="add-deadline_bottom">
-                                        <div className="add-deadline_bottom_head">
-                                            <div className="ry_arrow-style1"><img
-                                                src="https://assets.website-files.com/645264fdc383c729c0e89204/645276cc1b872033218e9c8f_act_01.svg"
-                                                loading="lazy" alt="" /></div>
-                                            <div>Feb 2023</div>
-                                            <div className="ry_arrow-style1"><img
-                                                src="https://assets.website-files.com/645264fdc383c729c0e89204/645276ccf5d46b22591aff59_act_02.svg"
-                                                loading="lazy" alt="" /></div>
-                                        </div>
-                                        <div className="calendar_row">
-                                            <div className="calendar_cell">
-                                                <div>6</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>7</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>8</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>9</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>10</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>11</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>12</div>
-                                            </div>
-                                        </div>
-                                        <div className="calendar_row">
-                                            <div className="calendar_cell">
-                                                <div>13</div>
-                                            </div>
-                                            <div className="calendar_cell current">
-                                                <div className="text-block-3">14</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>15</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>16</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>17</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>18</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>19</div>
-                                            </div>
-                                        </div>
-                                        <div className="calendar_row">
-                                            <div className="calendar_cell">
-                                                <div>20</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>21</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>22</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>23</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>24</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>25</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>26</div>
-                                            </div>
-                                        </div>
-                                        <div className="calendar_row">
-                                            <div className="calendar_cell">
-                                                <div>27</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>28</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>1</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>2</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>3</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>4</div>
-                                            </div>
-                                            <div className="calendar_cell">
-                                                <div>5</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="div-block-341"><a data-w-id="8f73d7c6-70b0-2ee5-2530-b28f77c9c1d7" href="#"
-                                        className="ry_link-style1 text-gray mr-10">Cancel</a><a href="/account-settings"
-                                            className="ry_btn-style1 w-button">Apply</a></div>
-                                </div>
-                            </div>
                             <div className="activity_top_container_right payroll">
                                 <div className="basepay_div">
+                                    <div className="card_dashboard-label">MY BASE SALARY:</div>
+                                    <div className="basepay-text">PHP <div />{this.state.salary}</div>
+                                    <div className="p-style1"></div>
+                                </div>
+                                <div className="basepay_div">
                                     <div className="card_dashboard-label">MY BASE PAY:</div>
-                                    <div className="basepay-text">$3</div>
+                                    <div className="basepay-text">${this.state.salary_per_hour}</div>
                                     <div className="p-style1">/hr</div>
                                 </div>
-                                <div className="btn-div">
+                                <div style={{ display: "flex", alignItems: "center", left: "10px" }}><div style={{ display: "flex", alignItems: "center" }} onClick={this.showExplanation.bind(this)}><i class="fa fa-eye-slash fa-lg" aria-hidden="true"
+                                    style={{ color: 'rgb(0, 168, 115)' }}></i><h4 style={{
+                                        color: 'rgb(0, 168, 115)',
+                                        cursor: 'pointer',
+                                        marginRight: '1rem',
+                                        marginLeft: '10px',
+                                    }}>Computation</h4></div><div style={{ display: "flex", alignItems: "center" }}><i class="fa fa-eye-slash fa-lg" aria-hidden="true"></i><h4 style={{ cursor: "pointer", marginLeft: "10px" }}>Filters</h4></div></div>
+                                {/* <div className="btn-div">
                                     <div className="ry_filter">
                                         <div className="icon_filter"><img
                                             src="https://assets.website-files.com/645264fdc383c729c0e89204/645276cc1dde16654d9fceba_act_03.svg"
@@ -169,60 +204,10 @@ class Payroll extends Component {
                                             loading="lazy" alt="" className="image-9" /></div>
                                         <div>Filter</div>
                                     </div>
-                                </div>
+                                </div> */}
                             </div>
                         </div>
-                        <div className="activity_cards_container">
-                            <div className="card-activity">
-                                <div className="card_dashboard_top-top">
-                                    <div className="card_dashboard-label">earned</div>
-                                    <div className="icon_option"><img
-                                        src="https://assets.website-files.com/645264fdc383c729c0e89204/64526ddd9bcbb3acdf86f6fd_icon_01.svg"
-                                        loading="lazy" alt="" /></div>
-                                </div>
-                                <div className="card-dashboard_top-body">
-                                    <h1 className="card_data">$270.23</h1>
-                                    <div className="card-dashboard_top-body-right">
-                                        <div className="microdetail text-gray">
-                                            <div>~ PHP 14947.10</div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="card-activity">
-                                <div className="card_dashboard_top-top">
-                                    <div className="card_dashboard-label">TIME</div>
-                                    <div className="icon_option"><img
-                                        src="https://assets.website-files.com/645264fdc383c729c0e89204/64526ddd9bcbb3acdf86f6fd_icon_01.svg"
-                                        loading="lazy" alt="" /></div>
-                                </div>
-                                <div className="card-dashboard_top-body">
-                                    <h1 className="card_data">78:23:41</h1>
-                                </div>
-                            </div>
-                            <div className="card-activity">
-                                <div className="card_dashboard_top-top">
-                                    <div className="card_dashboard-label">AVG. ACTIVITy</div>
-                                    <div className="icon_option"><img
-                                        src="https://assets.website-files.com/645264fdc383c729c0e89204/64526ddd9bcbb3acdf86f6fd_icon_01.svg"
-                                        loading="lazy" alt="" /></div>
-                                </div>
-                                <div className="card-dashboard_top-body">
-                                    <h1 className="card_data">74%</h1>
-                                </div>
-                            </div>
-                            <div className="card-activity">
-                                <div className="card_dashboard_top-top">
-                                    <div className="card_dashboard-label">Next pay schedule</div>
-                                    <div className="icon_option"><img
-                                        src="https://assets.website-files.com/645264fdc383c729c0e89204/64526ddd9bcbb3acdf86f6fd_icon_01.svg"
-                                        loading="lazy" alt="" /></div>
-                                </div>
-                                <div className="card-dashboard_top-body">
-                                    <h1 className="card_data">May 18</h1>
-                                </div>
-                            </div>
-                        </div>
+                        <TopCard />
                         <div className="activity_table_container">
                             <h1 className="ry_h3-display1">Pay History</h1>
                             <div className="table-div">
@@ -232,453 +217,76 @@ class Payroll extends Component {
                                             <div className="div-block-123">
                                                 <div className="card_table">
                                                     <div className="rb-table students">
-                                                        <div className="rb-table-hd">
-                                                            <div className="rb-table-col stretch">
-                                                                <div className="rb-table-cell">
-                                                                    <div className="table-header-div">
+                                                        <div class="rb-table-hd">
+                                                            <div class="rb-table-col">
+                                                                <div class="rb-table-cell">
+                                                                    <div class="table-header-div">
                                                                         <div>Project</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="rb-table-col _15">
-                                                                <div className="rb-table-cell">
-                                                                    <div className="table-header-div">
+                                                            <div class="rb-table-col">
+                                                                <div class="rb-table-cell">
+                                                                    <div class="table-header-div">
                                                                         <div>Pay Period</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="rb-table-col _10">
-                                                                <div className="rb-table-cell">
-                                                                    <div className="table-header-div">
-                                                                        <div>Time</div>
+                                                            <div class="rb-table-col">
+                                                                <div class="rb-table-cell">
+                                                                    <div class="table-header-div">
+                                                                        <div>Rendered Hours</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="rb-table-col _10">
-                                                                <div className="rb-table-cell">
-                                                                    <div className="table-header-div">
-                                                                        <div>Activity</div>
+                                                            <div class="rb-table-col">
+                                                                <div class="rb-table-cell">
+                                                                    <div class="table-header-div">
+                                                                        <div>Exchange rate</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="rb-table-col _10">
-                                                                <div className="rb-table-cell">
-                                                                    <div className="table-header-div">
-                                                                        <div>Earned ($)</div>
+                                                            <div class="rb-table-col">
+                                                                <div class="rb-table-cell">
+                                                                    <div class="table-header-div">
+                                                                        <div>Monthly salary</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="rb-table-col _10">
-                                                                <div className="rb-table-cell">
-                                                                    <div className="table-header-div">
+                                                            <div class="rb-table-col">
+                                                                <div class="rb-table-cell">
+                                                                    <div class="table-header-div">
+                                                                        <div>Extra</div>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div class="rb-table-col">
+                                                                <div class="rb-table-cell">
+                                                                    <div class="table-header-div">
                                                                         <div>Earned (₱)</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            <div className="rb-table-col _10">
-                                                                <div className="rb-table-cell">
-                                                                    <div className="table-header-div">
-                                                                        <div>Status</div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="rb-table-col _15">
-                                                                <div className="rb-table-cell">
-                                                                    <div className="table-header-div">
-                                                                        <div>Date Released</div>
+                                                            <div class="rb-table-col">
+                                                                <div class="rb-table-cell">
+                                                                    <div class="table-header-div">
+                                                                        <div>Earned ($)</div>
                                                                     </div>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                         <div className="rb-table-content">
-                                                            <div href="#" className="rb-table-row">
-                                                                <div className="rb-table-col stretch">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Graphic Design</div>
+
+                                                            {
+                                                                this.state.payrollList.map((element) => {
+                                                                    return (
+                                                                        <div key={Math.random()}>
+                                                                            <PayrollRows details={element} />
                                                                         </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>May 1-15, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>78:23:41</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>74%</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>$270.23</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>₱14947.10</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="ry_badge-style1 bg-yellow">Pending</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell"></div>
-                                                                </div>
-                                                            </div>
-                                                            <div href="#" className="rb-table-row">
-                                                                <div className="rb-table-col stretch">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Graphic Design</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Apr 16-30, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>78:23:41</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>74%</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>$270.23</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>₱14947.10</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="ry_badge-style1">Released</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>May 3, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div href="#" className="rb-table-row">
-                                                                <div className="rb-table-col stretch">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Graphic Design</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Apr 1-15, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>78:23:41</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>74%</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>$270.23</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>₱14947.10</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="ry_badge-style1">Released</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Apr 18, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div href="#" className="rb-table-row">
-                                                                <div className="rb-table-col stretch">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Graphic Design</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Mar 16-30, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>78:23:41</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>74%</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>$270.23</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>₱14947.10</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="ry_badge-style1">Released</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Apr 3, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div href="#" className="rb-table-row">
-                                                                <div className="rb-table-col stretch">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Graphic Design</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Mar 1-15, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>78:23:41</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>74%</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>$270.23</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>₱14947.10</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="ry_badge-style1">Released</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Mar 18, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div href="#" className="rb-table-row">
-                                                                <div className="rb-table-col stretch">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Graphic Design</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Feb 16-30, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>78:23:41</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>74%</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>$270.23</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>₱14947.10</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="ry_badge-style1">Released</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Mar 3, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div href="#" className="rb-table-row">
-                                                                <div className="rb-table-col stretch">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Graphic Design</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Feb 1-15, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>78:23:41</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>74%</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>$270.23</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>₱14947.10</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _10">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="ry_badge-style1">Released</div>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="rb-table-col _15">
-                                                                    <div className="rb-table-cell">
-                                                                        <div className="table-text">
-                                                                            <div>Feb 18, 2023</div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                                                                    )
+                                                                })
+                                                            }
+
                                                         </div>
                                                     </div>
                                                 </div>

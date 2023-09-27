@@ -3256,9 +3256,46 @@ body {
   font-weight: 600;
 }
 
+.text-green {
+  color: #00bf71;
+}
+
+.computation-explanation {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  top: 10;
+  height: 100vh;
+  width: 100vw;
+}
+
+.explanation-container {
+  padding: 20px;
+  margin-top: 50px;
+  width: 700px;
+  background: #fff;
+  border: 1px solid #132038;
+  border-radius: 25px;
+  height: 85%;
+  z-index: 9999;
+  position: relative;
+}
+
+.explanation {
+  margin-top: 25px;
+  height: 85%;
+  overflow-y: auto;
+  padding: 0 10px;
+}
+
 .microdetail.text-red {
   color: #ff4c4c;
   font-weight: 600;
+}
+
+.text-red {
+  color: #ff4c4c;
 }
 
 .microdetail.text-gray {
@@ -4498,4 +4535,146 @@ body {
   background-color: rgb(190, 190, 190);
   color: rgb(190, 190, 190);
   border-radius: 10px;
+}
+
+.feedback-icon-container {
+  position: absolute;
+  bottom: 20px;
+  right: 30px;
+  margin: 10px;
+  cursor: pointer;
+  z-index: 9999;
+}
+
+.feedback-icon-content {
+  position: relative;
+  font-size: 20px;
+  padding: 15px;
+  background: #00a873;
+  color: #fff;
+  border-radius: 25px;
+}
+
+
+
+
+/* Feedback.css */
+
+.feedback-container {
+  margin-top: 30px;
+  width: 80%;
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+  font-family: Arial, sans-serif;
+}
+
+.feedback-container h1 {
+  font-size: 24px;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.rating-container,
+.favorite-feature-container,
+.improvement-suggestions-container,
+.recommend-container {
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+label {
+  font-weight: bold;
+}
+
+.rating-container select,
+.favorite-feature-container input,
+.improvement-suggestions-container textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.rating-container select {
+  height: 40px;
+}
+
+.improvement-suggestions-container textarea {
+  height: 150px;
+  resize: none;
+}
+
+.submit-button {
+  background-color: #007bff;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.submit-button:hover {
+  background-color: #0056b3;
+}
+
+
+
+/* FeedbackList.css */
+
+.feedback-list-container {
+  width: 80%;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #f7f7f7;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  font-family: Arial, sans-serif;
+}
+
+.feedback-list-container h1 {
+  font-size: 28px;
+  margin-bottom: 20px;
+  color: #333;
+  text-align: center;
+}
+
+.feedback-entries {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.feedback-entry {
+  width: calc(50% - 20px);
+  /* Two columns */
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+.feedback-entry h2 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  color: #333;
+}
+
+.feedback-entry p {
+  font-size: 16px;
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.feedback-entry strong {
+  font-weight: bold;
+  margin-right: 5px;
 }

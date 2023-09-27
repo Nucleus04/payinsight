@@ -68,6 +68,11 @@ class Api {
             throw new Error(error);
         }
     }
+    /**
+     * retrieves organization where using belongs
+     * @param {*} access_token 
+     * @returns 
+     */
     async getOrganization(access_token) {
         try {
             let url = `https://api.hubstaff.com/v2/organizations`;
@@ -79,12 +84,17 @@ class Api {
                 })
             })
             let organization = await result.json()
-            console.log(organization);
             return organization.organizations[0].id;
         } catch (error) {
             throw new Error(error);
         }
     }
+    /**
+     * retrieve project information of the user
+     * @param {String} access_token 
+     * @param {String} organization_id 
+     * @returns 
+     */
     async getProject(access_token, organization_id) {
         try {
             let url = `https://api.hubstaff.com/v2/organizations/${organization_id}/projects`;
@@ -101,7 +111,17 @@ class Api {
             throw new Error(error);
         }
     }
+
+    /**
+     * function the retrieve activity on hubstaff api asynchronously
+     * @param {String} access_token 
+     * @param {Date} date_start 
+     * @param {Date} date_end 
+     * @param {String} userId 
+     * @returns 
+     */
     async getActivities(access_token, date_start, date_end, userId) {
+        console.log("Getting activities on api-----", date_start, date_end);
         try {
             let organization_id = await this.getOrganization(access_token);
             let project = await this.getProject(access_token, organization_id);
