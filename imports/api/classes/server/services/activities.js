@@ -1,6 +1,5 @@
 
-import { isEqual, omit } from "lodash"
-
+//import { isEqual, omit } from "lodash"
 class Activities {
     constructor(database) {
         this.database = database;
@@ -38,12 +37,74 @@ class Activities {
         return document;
     }
 
+    isEqual(value, other) {
+        // Handle simple data types
+        if (value === other) {
+            return true;
+        }
 
+        // Handle null or undefined values
+        if (value == null || other == null) {
+            return value === other;
+        }
+
+        // Handle arrays
+        if (Array.isArray(value) && Array.isArray(other)) {
+            if (value.length !== other.length) {
+                return false;
+            }
+            for (let i = 0; i < value.length; i++) {
+                if (!isEqual(value[i], other[i])) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Handle objects
+        if (typeof value === 'object' && typeof other === 'object') {
+            const keysA = Object.keys(value);
+            const keysB = Object.keys(other);
+
+            if (keysA.length !== keysB.length) {
+                return false;
+            }
+
+            for (const key of keysA) {
+                if (!this.isEqual(value[key], other[key])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        // Values are not equal
+        return false;
+    }
+    omit(object, keysToOmit) {
+        if (!object || typeof object !== 'object') {
+            throw new Error('The first argument must be an object.');
+        }
+
+        if (!Array.isArray(keysToOmit)) {
+            throw new Error('The second argument must be an array of keys to omit.');
+        }
+
+        const result = {};
+        for (const key in object) {
+            if (object.hasOwnProperty(key) && !keysToOmit.includes(key)) {
+                result[key] = object[key];
+            }
+        }
+        return result;
+    }
     /**
      * Accepts array of object from db and api and update and insert necessary data
      * @param {Array} activity_list_db 
      * @param {Array} activity_list_api 
      */
+
     async compare(activity_list_db, activity_list_api) {
         console.log("Comparing Now");
         console.log("Activity on Databse----", activity_list_db);
@@ -55,8 +116,8 @@ class Activities {
                 let need_to_insert = true;
                 for (let j = 0; j < activity_list_db.length; j++) {
                     const fieldsToRemove = ['_id'];
-                    let db_value = omit(activity_list_db[j], fieldsToRemove);
-                    let equal = isEqual(activity_list_api[i], db_value);
+                    let db_value = this.omit(activity_list_db[j], fieldsToRemove);
+                    let equal = this.isEqual(activity_list_api[i], db_value);
                     if (activity_list_api[i].id === activity_list_db[j].id) {
                         need_to_insert = false;
                         if (!equal) {
