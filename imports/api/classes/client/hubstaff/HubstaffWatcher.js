@@ -79,7 +79,6 @@ class HubstaffWatcher extends Watcher {
     retrieveSalaryInfo(date, rate) {
         return new Promise((resolve, reject) => {
             this.Parent.callFunc(PAYROLL.GET_PAYROLL, { userId: Meteor.userId(), date: date, rate: rate }).then((result) => {
-                console.log(result);
                 resolve(result);
             }).catch((error) => {
                 console.log(error);
@@ -90,7 +89,6 @@ class HubstaffWatcher extends Watcher {
         console.log(salary);
         return new Promise((resolve, reject) => {
             this.Parent.callFunc(PAYROLL.UPDATE_SALARY, { userId: Meteor.userId(), salary: salary }).then((result) => {
-                console.log(result);
             }).catch((error) => {
                 console.log(error);
             })

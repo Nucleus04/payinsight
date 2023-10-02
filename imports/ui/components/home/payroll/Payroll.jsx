@@ -72,7 +72,6 @@ class PayrollComponent extends Component {
         const setStart = (started) => {
             let start = new Date(started);
             let next = new Date(started);
-            console.log("----------------------", start);
             let temp = null;
             let base = start.getDate();
             if (first) {
@@ -90,9 +89,7 @@ class PayrollComponent extends Component {
                 temp.setDate(temp.getDate() - 1);
                 //next.setDate(next.getDate() - 1);
             }
-            console.log("--Next", next);
             ranges.push({ start: start, next: temp });
-            console.log(next, end);
             if (next < end) {
                 setStart(next);
             }
@@ -101,7 +98,6 @@ class PayrollComponent extends Component {
         setStart(startDate);
         let totalHour = 0;
         let hoursList = [];
-        console.log(ranges);
         ranges = ranges.reverse();
         ranges.forEach(item => {
             let projectName = "";
@@ -146,11 +142,9 @@ class PayrollComponent extends Component {
         })
         this.calculateSalaryPerHour(this.props.activity.salary, this.props.activity.usdRate);
         let activities = await HubstaffWatcher.retrieveAllActivities();
-        console.log("Activities", activities);
         let sortedActivity = this.sortByDateOldestFirst(activities);
         let { newest, oldest } = this.findNewestAndOldestDates(activities);
         let totalHour = this.calculateTotalHours(sortedActivity, oldest, newest);
-        console.log("____total hour_____", totalHour);
         this.setState({
             payrollList: totalHour,
         })
@@ -158,11 +152,9 @@ class PayrollComponent extends Component {
 
     }
     showExplanation() {
-        console.log("Show Explanation");
         this.props.dispatch(showExplanation(true));
     }
     onSalaryChange(event) {
-        console.log("changing value")
         this.props.dispatch(setSalary(event.target.value));
         HubstaffWatcher.updateSalary(event.target.value);
     }

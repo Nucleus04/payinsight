@@ -134,7 +134,7 @@ class TopCardComponent extends Component {
                             loading="lazy" alt="" /></div>
                     </div>
                     <div className="card-dashboard_top-body">
-                        <h1 className="card_data">7{this.state.totalTime}</h1>
+                        <h1 className="card_data">{this.state.totalTime}</h1>
                     </div>
                 </div>
                 <div className="card-activity">

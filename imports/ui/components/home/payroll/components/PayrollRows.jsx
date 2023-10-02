@@ -21,14 +21,14 @@ class PayrollRowsCompoenent extends Component {
         return salary / 2 / days / 9;
     }
     calculateEarned(salary, rate, totalHour, days, extra) {
-        let salary_per_hour = this.calculateSalaryPerHour(salary, days);
+        let salary_per_hour = this.calculateSalaryPerHour(Number(salary), days);
         let salary_per_minute = salary_per_hour / 60;
         let [hour, minute] = totalHour.split(":");
         let total_salary_peso_hour = Number(hour) * Number(salary_per_hour);
         let total_salary_peso_minute = Number(minute) * Number(salary_per_minute);
         let total_salary_peso = total_salary_peso_hour + total_salary_peso_minute + Number(extra);
 
-        let total_salary_dollar = total_salary_peso / rate;
+        let total_salary_dollar = total_salary_peso / Number(rate);
         this.setState({
             earned_peso: parseFloat(total_salary_peso).toFixed(2),
             earned_dollar: parseFloat(total_salary_dollar).toFixed(2),
@@ -88,7 +88,7 @@ class PayrollRowsCompoenent extends Component {
             return { history: updatedHistory }; // Return the updated state object
         });
         let days = this.getWorkingDays(this.props.details.range.start, this.props.details.range.next);
-        this.calculateEarned(this.state.history[0].salary, this.state.history[0].rate, this.props.details && this.props.details.totalHour, days, event.target.value)
+        this.calculateEarned(this.state.history[0].salary, event.target.value, this.props.details && this.props.details.totalHour, days, this.state.history[0].extra)
     }
 
     handleSalaryChange(event) {
@@ -101,7 +101,7 @@ class PayrollRowsCompoenent extends Component {
             return { history: updatedHistory }; // Return the updated state object
         });
         let days = this.getWorkingDays(this.props.details.range.start, this.props.details.range.next);
-        this.calculateEarned(this.state.history[0].salary, this.state.history[0].rate, this.props.details && this.props.details.totalHour, days, event.target.value)
+        this.calculateEarned(event.target.value, this.state.history[0].rate, this.props.details && this.props.details.totalHour, days, this.state.history[0].extra)
     }
     render() {
         return (

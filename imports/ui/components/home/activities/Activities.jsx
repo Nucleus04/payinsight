@@ -4,6 +4,7 @@ import TopCard from "./components/TopCards";
 import { useSelector } from "react-redux";
 import HubstaffWatcher from "../../../../api/classes/client/hubstaff/HubstaffWatcher";
 import { SESSION_KEYS } from "../../../../api/common";
+import DummyWatcher from "../../../../api/classes/client/Feedback/DummyWatcher";
 
 function Activities() {
     const activity = useSelector((state) => state.activity);
@@ -25,6 +26,7 @@ class ActivitiesComponent extends Component {
             monday: "--",
             sunday: "--",
         }
+        DummyWatcher.setWatcher(this, "activity");
     }
 
     showDate() {
@@ -45,13 +47,11 @@ class ActivitiesComponent extends Component {
         // Format the dates as strings
         const startDate = firstDayOfWeek.toDateString(); // Format as "YYYY-MM-DD"
         const endDate = lastDayOfWeek.toDateString(); // Format as "YYYY-MM-DD"
-        console.log(startDate, endDate);
         return { startDate, endDate };
     }
     // Output: End Date: 2023-09-10
 
     async handleDateChange(event) {
-        console.log(event.target.value);
         let { startDate, endDate } = this.getStartAndEndOfWeek(event.target.value);
         this.setState({
             monday: startDate,
@@ -143,6 +143,9 @@ class ActivitiesComponent extends Component {
             monday: monday,
             sunday: sunday,
         })
+        setTimeout(() => {
+            DummyWatcher.setData(4);
+        }, 5000);
     }
 
     render() {
